@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Pontos de Missões</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #cce7ff;
+    margin: 0;
+    padding: 0;
+}
+.container {
+    max-width: 900px;
+    margin: 20px auto;
+    background-color: #e6f2ff;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+h1 {
+    text-align: center;
+    color: #003366;
+    margin: 10px 0;
+}
+.logo {
+    display: block;
+    margin: 0 auto 20px auto;
+    max-width: 200px;
+    height: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+th, td {
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #000000;
+}
+th {
+    background-color: #000000;
+    color: white;
+}
+td img {
+    max-width: 100px;
+    height: auto;
+    border-radius: 10px;
+}
+.mission-name {
+    text-align: left;
+    padding-left: 10px;
+}
+.total-row {
+    font-weight: bold;
+    background-color: #b3d9ff;
+}
+.buttons {
+    text-align: center;
+    margin-bottom: 15px;
+}
+.buttons button {
+    margin: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    color: white;
+    background-color: #3399ff;
+    transition: 0.3s;
+}
+.buttons button:hover {
+    background-color: #0059b3;
+}
+#teamInput {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border: 1px solid #3399ff;
+    font-size: 16px;
+}
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 100;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+}
+.modal-content {
+    background-color: #e6f2ff;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 15px;
+    width: 95%;
+    max-width: 900px;
+    overflow-x: auto;
+}
+.close {
+    color: #003366;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.close:hover {
+    color: #ff0000;
+}
+.saved-data table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.saved-data th, .saved-data td {
+    border: 1px solid #000000;
+    padding: 5px;
+    text-align: center;
+}
+.saved-data th {
+    background-color: #000000;
+    color: white;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<img class="logo" src="fll logo.png" alt="FLL Logo">
+<h1>Calculadora de Pontos de Missões</h1>
+
+<div class="buttons">
+    <button id="resetSaved">Resetar Dados Salvos</button>
+    <button id="viewSaved">Ver Dados Salvos</button>
+</div>
+
+<input type="text" id="teamInput" placeholder="Digite o nome dos integrantes separados por vírgula">
+
+<form id="calculatorForm">
+    <table>
+        <thead>
+            <tr>
+                <th>Missão</th>
+                <th>Imagem</th>
+                <th>Pontuação</th>
+            </tr>
+        </thead>
+        <tbody id="missionTable"></tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td>Total</td>
+                <td colspan="2" id="total">0</td>
+            </tr>
+        </tfoot>
+    </table>
+</form>
+
+<div class="buttons">
+    <button id="saveData">Salvar Pontuação</button>
+    <button id="generateExcel">Gerar Planilha Excel</button>
+</div>
+</div>
+
+<div id="savedModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Dados Salvos</h2>
+        <div class="saved-data" id="savedDataContainer"></div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.3/xlsx.full.min.js"></script>
+<script>
+const missions = [
+    { name: "M01 - Escavação superficial", img: "m01.png", points: [0,10,20,30] },
+    { name: "M02 - Revelação do mapa", img: "m02.png", points: [0,10,20,30] },
+    { name: "M03 - Exploradora de minas", img: "m03.png", points: [0,10,30,40] },
+    { name: "M04 - Extração segura", img: "m04.png", points: [0,10,30,40] },
+    { name: "M05 - Quem viveu aqui?", img: "m05.png", points: [0,30] },
+    { name: "M06 - Forja", img: "m06.png", points: [0,10,20,30] },
+    { name: "M07 - Levantamento de peso", img: "m07.png", points: [0,30] },
+    { name: "M08 - Silo", img: "m08.png", points: [0,10,20,30] },
+    { name: "M09 - O que está à venda?", img: "m09.png", points: [0,10,20,30] },
+    { name: "M10 - Desequilíbrio da balança", img: "m10.png", points: [0,10,20,30] },
+    { name: "M11 - Pesca de artefatos", img: "m11.png", points: [0,20,30] },
+    { name: "M12 - Operação de resgate", img: "m12.png", points: [0,10,20,30] },
+    { name: "M13 - Reconstrução da estátua", img: "m13.png", points: [0,30] },
+    { name: "M14 - Fórum", img: "m14.png", points: [0,5,10,15,20,25,30,35] },
+    { name: "M15 - Marcação do sítio arqueológico", img: "m15.png", points: [0,10,20,30] },
+    { name: "Tokens", img: "tokens.png", points: [10,15,20,25,35,50] }
+];
+
+const missionTable = document.getElementById('missionTable');
+const totalField = document.getElementById('total');
+const saveButton = document.getElementById('saveData');
+const generateExcelButton = document.getElementById('generateExcel');
+const resetSavedButton = document.getElementById('resetSaved');
+const viewSavedButton = document.getElementById('viewSaved');
+const savedModal = document.getElementById('savedModal');
+const savedDataContainer = document.getElementById('savedDataContainer');
+const spanClose = document.getElementsByClassName('close')[0];
+const teamInput = document.getElementById('teamInput');
+
+let savedData = JSON.parse(localStorage.getItem('savedData')) || [];
+teamInput.value = localStorage.getItem('teamNames') || '';
+
+missions.forEach((mission,index)=>{
+    const row = document.createElement('tr');
+    let defaultValue = mission.name.toLowerCase().includes('tokens') ? 50 : mission.points[0];
+    let selectHTML = `<select name="m${index+1}" class="missionInput" onchange="updateTotal()">`;
+    mission.points.forEach(p => selectHTML += `<option value="${p}">${p}</option>`);
+    selectHTML += `</select>`;
+    row.innerHTML = `
+        <td class="mission-name">${mission.name}</td>
+        <td><img src="${mission.img}" alt="${mission.name}"></td>
+        <td>${selectHTML}</td>
+    `;
+    missionTable.appendChild(row);
+    row.querySelector('select').value = defaultValue;
+});
+
+function updateTotal(){
+    let total = 0;
+    document.querySelectorAll('.missionInput').forEach(i => total += parseInt(i.value)||0);
+    totalField.textContent = total;
+}
+
+saveButton.addEventListener('click',()=>{
+    const data = Array.from(document.querySelectorAll('.missionInput')).map(i=>parseInt(i.value)||0);
+    const teamNames = teamInput.value.trim();
+    if(teamNames) localStorage.setItem('teamNames', teamNames);
+    savedData.push({
+        date: new Date().toISOString(),
+        data: data,
+        total: data.reduce((a,b)=>a+b,0),
+        team: teamNames
+    });
+    localStorage.setItem('savedData', JSON.stringify(savedData));
+
+    document.querySelectorAll('.missionInput').forEach((i,idx)=>{
+        i.value = missions[idx].name.toLowerCase().includes('tokens') ? 50 : missions[idx].points[0];
+    });
+    updateTotal();
+    alert("Pontuação salva e dados atuais resetados!");
+});
+
+resetSavedButton.addEventListener('click',()=>{
+    if(confirm("Deseja realmente resetar todos os dados salvos?")){
+        localStorage.removeItem('savedData');
+        savedData = [];
+        alert("Dados salvos foram resetados!");
+    }
+});
+
+function showSavedData(){
+    if(savedData.length===0){
+        savedDataContainer.innerHTML="<p>Nenhum dado salvo.</p>";
+        return;
+    }
+    let html = `<table><thead><tr><th>Round</th><th>Data</th><th>Hora</th><th>Integrantes</th>`;
+    missions.forEach(m => html+=`<th>${m.name}</th>`);
+    html += `<th>Total</th></tr></thead><tbody>`;
+    savedData.forEach((entry,index)=>{
+        const dateObj = new Date(entry.date);
+        const dateStr = dateObj.toLocaleDateString();
+        const timeStr = dateObj.toLocaleTimeString();
+        html += `<tr><td>${index+1}</td><td>${dateStr}</td><td>${timeStr}</td><td>${entry.team||''}</td>`;
+        entry.data.forEach(d=>html+=`<td>${d}</td>`);
+        html += `<td>${entry.total}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+    savedDataContainer.innerHTML = html;
+    savedModal.style.display = "block";
+}
+
+viewSavedButton.addEventListener('click', showSavedData);
+spanClose.onclick = ()=>savedModal.style.display="none";
+window.onclick = e=>{if(e.target==savedModal)savedModal.style.display="none";};
+
+generateExcelButton.addEventListener('click',()=>{
+    const wb = XLSX.utils.book_new();
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2,'0');
+    const month = String(today.getMonth()+1).padStart(2,'0');
+    const year = today.getFullYear();
+    const sheetName = `Round do dia ${day}-${month}-${year}`;
+
+    const ws_data = [["Round","Data","Hora","Integrantes",...missions.map(m=>m.name),"Total"]];
+    savedData.forEach((entry,index)=>{
+        const d = new Date(entry.date);
+        const dateStr = d.toLocaleDateString();
+        const timeStr = d.toLocaleTimeString();
+        ws_data.push([index+1,dateStr,timeStr,entry.team||'',...entry.data,entry.total]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for(let R=0; R<=range.e.r; R++){
+        for(let C=0; C<=range.e.c; C++){
+            const cell_address = XLSX.utils.encode_cell({r:R,c:C});
+            if(!ws[cell_address]) continue;
+
+            let fillColor = "ffffff";
+            if(R===0) fillColor = "000000";
+            else if(C>=4 && C<range.e.c) fillColor = (R%2===0?"cce7ff":"ffffff");
+            else fillColor = (R%2===0?"f2f2f2":"ffffff");
+
+            ws[cell_address].s = {
+                alignment: {horizontal:"center", vertical:"center"},
+                border: {
+                    top:{style:"thin", color:{rgb:"000000"}},
+                    bottom:{style:"thin", color:{rgb:"000000"}},
+                    left:{style:"thin", color:{rgb:"000000"}},
+                    right:{style:"thin", color:{rgb:"000000"}}
+                },
+                fill: {fgColor:{rgb: fillColor}},
+                font: {color:{rgb:(R===0?"FFFFFF":"000000")}, bold: R===0}
+            };
+        }
+    }
+
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    XLSX.writeFile(wb, `pontuacoes_${day}-${month}-${year}.xlsx`);
+});
+
+window.onload = updateTotal;
+</script>
+
+</body>
+</html>
